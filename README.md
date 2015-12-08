@@ -4,7 +4,7 @@ This simple program will allow you to quickly build Samsung App Packges for conv
 
 This program may be compiled into a JAR and used directly in your IDE of choice. For example, as a custom Builder in Eclipse.
 
-When using this as a JAR Builder, these arguments might be useful as a template:
+When using this as a JAR Builder, these arguments might be useful as a template when targetting your java executable:
 
 ```
 -jar ${workspace_loc:/ProjectName/sdkb.jar}
