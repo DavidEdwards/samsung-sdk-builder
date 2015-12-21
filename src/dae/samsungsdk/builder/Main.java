@@ -10,11 +10,17 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Random;
 
+import javax.script.ScriptEngine;
+import javax.script.ScriptEngineManager;
+import javax.script.ScriptException;
+
 import org.apache.commons.io.FileUtils;
 import org.kohsuke.args4j.Argument;
 import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
 import org.kohsuke.args4j.Option;
+
+import com.yahoo.platform.yui.compressor.YUICompressor;
 
 /**
  * <p>A simple builder for the Samsung SDK, that packages may be built quickly for faster App testing.</p>
@@ -57,6 +63,9 @@ public class Main {
 
     @Option(name="-V",usage="should we output to stdout")
     private boolean verboseMode;
+
+    @Option(name="-o",usage="should we obfuscate")
+    private boolean obfuscate;
 	
 
     @Argument
@@ -116,31 +125,37 @@ public class Main {
             if(verboseMode) System.out.println("Output Widget folder: "+widgetFolder.getAbsolutePath());
             if(verboseMode) System.out.println("Output Package file: "+zip.getAbsolutePath());
             if(verboseMode) System.out.println("Output Widgetlist: "+widgetlist.getAbsolutePath());
-
-            if(verboseMode) System.out.println("Copying project folder to temporary directory");
+            
+            if(verboseMode) System.out.println("Copying project folder to temporary directory.");
 			FileUtils.copyDirectory(projectFolder, tempDirectory, new FileFilter() {
 				@Override
 				public boolean accept(File file) {
 					if(file.getName().endsWith(".jar")) return false;
+					
 					return true;
 				}
 			});
-            if(verboseMode) System.out.println("Deleting non-required files");
+            if(verboseMode) System.out.println("Deleting non-required files.");
 			FileUtils.deleteQuietly(new File(tempDirectory, ".project"));
 			FileUtils.deleteQuietly(new File(tempDirectory, ".settings"));
+			
+			if(obfuscate) {
+	            if(verboseMode) System.out.println("Obfuscation option set. Traversing temporary folder.");
+				obfuscateJavascript(tempDirectory);
+			}
 
-            if(verboseMode) System.out.println("Building package");
+            if(verboseMode) System.out.println("Building package.");
 			Zip z = new Zip();
 			z.setSourcePath(tempDirectory);
 			z.zipIt(zip.getAbsolutePath());
-            if(verboseMode) System.out.println("Package is built");
+            if(verboseMode) System.out.println("Package is built.");
 		} 
         catch (IOException e) {
 	        System.out.println("Could not build package!");
 			e.printStackTrace();
 			return;
 		} finally {
-            if(verboseMode) System.out.println("Deleting temporary directory");
+            if(verboseMode) System.out.println("Deleting temporary directory.");
 	        FileUtils.deleteQuietly(tempDirectory);
 		}
         
@@ -159,7 +174,7 @@ public class Main {
 		widgetlistTemplate.append("</rsp>\r\n");
 
         try {
-            if(verboseMode) System.out.println("Writing new widgetlist.xml");
+            if(verboseMode) System.out.println("Writing new widgetlist.xml.");
 			FileUtils.write(widgetlist, widgetlistTemplate.toString());
 		}
 		catch (IOException e) {
@@ -168,7 +183,7 @@ public class Main {
 			return;
 		}
 
-        if(verboseMode) System.out.println("Build process completed");
+        if(verboseMode) System.out.println("Build process completed.");
         
         if(completionTarget != null) {
             if(verboseMode) System.out.println("Passing widgetlist folder to external program.");
@@ -180,6 +195,35 @@ public class Main {
 				e.printStackTrace();
 				return;
 			}
+        }
+	}
+	
+	private void obfuscateJavascript(File node) {
+        if (node.isDirectory()) {
+        	for(File file : node.listFiles()) {
+        		obfuscateJavascript(file);
+        	}
+        } else {
+        	if(node.getName().endsWith(".js")) {
+	        	if(verboseMode) System.out.println("Obfuscate: "+node.getAbsolutePath());
+				
+				File generated = new File(node.getName()+".min.js");
+			    YUICompressor.main(new String[] {
+			    		node.getAbsolutePath(), 
+						"-o",
+						generated.getName()
+				});
+			    
+			    try {
+			    	FileUtils.deleteQuietly(node);
+//		        	if(verboseMode) System.out.println("Overwriting \""+node.getAbsolutePath()+"\" with \""+generated.getAbsolutePath()+"\".");
+					FileUtils.moveFile(generated, node);
+				}
+				catch (IOException e) {
+		        	if(verboseMode) System.out.println("Could not overwrite javascript file with generated obfuscated file.");
+					e.printStackTrace();
+				}
+        	}
         }
 	}
 
