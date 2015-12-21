@@ -21,6 +21,6 @@ When using this as a JAR Builder, these arguments might be useful as a template 
 
 Uses libraries:
 
-☼ args4j - Parse command line arguments
-☼ Apache Commons IO - Trusted efficient File copy methods 
-☼ YUI Compressor - Optional script compression / obfuscation
+* args4j - Parse command line arguments
+* Apache Commons IO - Trusted efficient File copy methods
+* YUI Compressor - Optional script compression / obfuscation
